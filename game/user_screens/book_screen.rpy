@@ -1,5 +1,5 @@
 
-screen read_book(left_page, right_page):
+screen read_book(left_page, right_page, book_type):
     tag read_book    
     modal True
     zorder 150
@@ -13,7 +13,10 @@ screen read_book(left_page, right_page):
             xmaximum 550
             background None
             has vbox
-            text left_page style "book_text"
+            if book_type == "image":
+                add "[left_page]"
+            else:
+                text left_page style "book_text"
 
         frame:
             xpos 1005
@@ -22,7 +25,10 @@ screen read_book(left_page, right_page):
     
             background None
             has vbox
-            text right_page style "book_text"
+            if book_type == "image":
+                add "[right_page]"
+            else:
+                text right_page style "book_text"
             
 
         textbutton "Exit" action Return() align (1.0, 1.0) style "blue_button"

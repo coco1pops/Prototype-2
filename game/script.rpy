@@ -4,11 +4,10 @@
 # name of the character.
 
 
-# call init_py
-
 default world = WorldState()
 default pc = PlayerCharacter("Meri")
 default g = NPC("Guardian", "A warrior with a long sword. She looks very fierce", -1)
+default c = NPC("Caramanlys", "Myfanwy's well-fed striped, ginger cat with green eyes", -1 )
 
 default s = Character("Narrator")
 default function_success = False
@@ -18,55 +17,53 @@ default error_message = ""
 #Declare music
 define audio.gamemusic = "audio/teller-of-the-tales-by-kevin-macleod-from-filmmusic-io.mp3"
 
+transform half_size:
+    zoom 0.5
+
 # The game starts here.
+
 
 label start:
     play music gamemusic
     call init_game
 
-    # Show a background. This uses a placeholder by default, but you can
-    # add a file (named either "bg room.png" or "bg room.jpg") to the
-    # images directory to show it.
+    show screen skip_button
+    jump intro
+
+    label out_intro:
+    hide screen skip_button
 
     scene kitchen
-
-    # This shows a character sprite. A placeholder is used, but you can
-    # replace it by adding a file named "eileen happy.png" to the images
-    # directory.
-
     show main no cloak
 
     # These display lines of dialogue.
 
-    s "You are Mereianaville ap Cerevanian ap Cyth"
-    # Temp debug
-    # jump debug_1
-    s "But most people just call you [pc.name]"
+    s "You are Mereianaville ap Cerevanian"
+    s "Let's just call you [pc.name]"
 
-    s "You are an apprentice to Mwyfanwy Morriganwyn the witch"
-    s "Unfortunately Mwyfanwy seems to have had an accident"
-    s "You heard a big bang from her room. You rushed in but she's nowhere to be seen"
-    s "You look around. Everything is where it should be. There's a strong, unpleasant smell and Mwyfanwy has disappeared"
-
-    show main annoyed
-    s "This is a disaster. You're just a novice witch. Your jobs are to keep the place tidy, grind up roots and spices, light fires, 
-        do the laundry and fetch Mwyfanwy a cup of tea when she wants one. Mwyfanwy did the magic and cooked the food"
-    s "The food seemed to just appear. Mwyfanwy must have used magic to conjure it. You've no idea how she did it. 
-        But now she's not here"
-    s "And you're hungry"   
-
-    label debug_1:
-
-        #
-        # Start in the kitchen
-        #
-        $ world.location = world.all_locations[0]
-        s "[world.location.description]"
-
+    s "You are in the kitchen wondering what to do. Myfanwy the witch has disappeared and you are alone in her lair"
+    
+    #
+    # Start in the kitchen
+    #
+    $ world.location = world.all_locations[0]
+    s "[world.location.description]"
+    $ lcase_name = world.location.display_name.lower()
+    s "In [lcase_name] is [world.location.NPC.name], [world.location.NPC.description]"
+            
     label main_loop:
-  
+
+        show screen status_bar
         scene expression world.location.name.lower() 
-        show main no cloak
+
+        if world.location.NPC != None:
+            show main no cloak at right
+            show expression "images/characters/[world.location.NPC.name].png" at left
+            if world.location.NPC.dialogue_type == "intro":
+                $ t = world.location.NPC.get_dialogue()
+                call expression t 
+        else:
+            show main no cloak
 
         menu:
             "Explore [world.location.display_name]":
@@ -74,7 +71,10 @@ label start:
 
             "Describe [world.location.display_name]":
                 s "[world.location.description]"
-                jump main_loop  
+
+            "Speak to [world.location.NPC.name]" if world.location.NPC :
+                $ t = world.location.NPC.get_dialogue()
+                call expression t
 
             "Explore Witch's Lair":
                 jump witchs_lair_map
@@ -86,21 +86,24 @@ label start:
 
             "Inventory":
                 call inventory
+                call check_time(1)
+            
+            "Safe Puzzle":
+                call screen safe_scene
 
             "Exit":
                 jump quit
 
-            "Unlock some Gallery images":
+            # "Unlock some Gallery images":
                 ##Condition defined in gallery/galleryA.rpy, gallery/galleryB.rpy etc...)
-                $ persistent.pg1_2 = True
-                $ persistent.pg1_5 = True
-                $ persistent.pg1_4 = True
-                $ persistent.pg2_2 = True
-                $ persistent.pg2_6 = True
-                $ persistent.pg3_5 = True
-                $ persistent.pg4_4 = True
-                $ persistent.pg4_6 = True
-
+                #$ persistent.pg1_2 = True
+                #$ persistent.pg1_5 = True
+                #$ persistent.pg1_4 = True
+                #$ persistent.pg2_2 = True
+                #$ persistent.pg2_6 = True
+                #$ persistent.pg3_5 = True
+                #$ persistent.pg4_4 = True
+                #$ persistent.pg4_6 = True
        
         jump main_loop
 
@@ -108,8 +111,7 @@ label start:
         return
 
     label witchs_lair_map:
-        s "You explore the witch's lair"
-
+        hide screen status_bar
         call screen lair_hotspots()
         if _return == "change":
             scene expression world.location.name.lower() 
@@ -124,8 +126,11 @@ label start:
 
         # Find new location
         $ world.location = next((l for l in world.all_locations if l.name == target_location), None)   
-        scene expression world.location.name.lower()
-        s "You go to [world.location.display_name]"
+        $ lcase_name = world.location.display_name.lower()
+        scene expression  world.location.name.lower()
+        s "You go to [lcase_name]"
+        if world.location.NPC:
+            s "In [lcase_name] is [world.location.NPC.name], [world.location.NPC.description]"
         #
         # May need to change this for outside
         #
@@ -145,6 +150,7 @@ label start:
         call screen search_location(world.location)
 
         if _return == "exit":
+            call check_time(2)
             jump main_loop
         elif _return == "screen":
             jump display_location
@@ -155,7 +161,7 @@ label start:
         # Display the book contents
         # 
         s "[book.text]"
-        call screen read_book(left_page=book.left_page, right_page=book.right_page)
+        call screen read_book(left_page=book.left_page, right_page=book.right_page, book_type=book.book_type)
         if mode == "screen":
             jump display_location
         jump main_loop
@@ -172,7 +178,8 @@ label start:
         scene scroll
         s "[scroll.scroll_text]"
         scene scroll read with fade
-        s "[error_message]"   
+        s "[error_message]"
+        $ error_message = ""   
 
         $ scroll.del_inv() #Use up scroll
         $ door.enabled = True
@@ -188,6 +195,7 @@ label start:
 
         scene key use with fade
         s "[error_message]"   
+        $ error_message = ""
 
         $ key.del_inv() #Use up key
         $ door.enabled = True
@@ -206,6 +214,43 @@ label start:
         scene expression world.location.name.lower() 
 
         return mode
+
+    label check_time(inc):
+        $ world.add_time(inc)
+        if world.ampm == "night":
+            jump process_night
+        return
+
+    label process_night:
+        s "You are tired and need to go to sleep"
+        s "You head to your room"
+        scene night
+        $ world.location = world.all_locations[1]
+        s "Night Falls"
+
+        $ world.day += 1
+        $ world.ampm="am"
+        $ pc.hunger += 1
+
+        if pc_hunger > 5:
+            s "Your stomach rumbles with hunger. You feel so weak"
+            s "You try to sit up but your head spins and you collapse back on the bed"
+            scene Caramanlys big
+            s "As your vision fades, you see Caramanlys slinking through the door, his green eyes fixed on you"
+            s "He licks his lips as you pass out"
+            s "You have lost..."
+            jump quit
+        if pc.hunger > 3:
+            s "You are very hungry"
+        elif pc.hunger > 1:
+            s "You are hungry"
+
+        if c.counter > -1:
+            $ c.counter -=1
+        if c.counter == -1:
+            $ c.dialogue_id +=1
+
+        jump main_loop
 
     label witchs_lair:
         "You travel to the witch's lair"

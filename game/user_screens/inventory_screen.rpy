@@ -76,7 +76,10 @@ screen view_list(objs, name, mode=""):
                         elif name=="Rings":
                             textbutton "Wear" action [Show("view_rings", ring=obj, mode=mode)] style "blue_button"
                         else:
-                            text ""
+                            if mode == "gift":
+                                textbutton "Give" action NullAction() style "blue_button"
+                            else:
+                                text ""
             else:
                 text "You have no " + name style "window_text"
             
@@ -128,3 +131,6 @@ screen view_rings(ring, mode):
 
             null height 20
             textbutton "Close" action Hide("view_rings") style "blue_button"            
+
+screen give_npc:
+    textbutton "Give" style "blue_button" align (0.95, 0.95) action [Show("view_list", objs=pc.inv_other, name="Misc Items", mode="gift" )]

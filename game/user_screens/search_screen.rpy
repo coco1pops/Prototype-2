@@ -75,9 +75,9 @@ screen view_objects(content):
                     ] style "blue_button" sensitive (content.objs) 
                 #
                 # Adding Cauldron functionality
-                # textbutton "Use":
-                #    action [Show use_cauldron(cauldron=content)]
-                #   style blue_button
-                #   sensitive content.cauldron
+                textbutton "Use":
+                    action [Hide (), Show("cauldron_screen",parent=content)]
+                    style "blue_button"
+                    sensitive content.cauldron
                 textbutton "Close" action Hide("view_objects") style "blue_button"
                   
